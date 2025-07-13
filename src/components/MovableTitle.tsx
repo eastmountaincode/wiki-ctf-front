@@ -36,13 +36,10 @@ export default function MovableTitle({
                 fontFamily: "'Linux Libertine', Georgia, serif",
                 fontWeight: 400,
                 fontSize: 38,
-                color: teamColor || '#202122',
-                backgroundColor: carrying ? 'rgba(255, 255, 255, 0.9)' : 'transparent',
-                border: teamColor ? `2px solid ${teamColor}` : 'none',
-                borderRadius: carrying ? '4px' : '0px',
+                color: '#202122',
+
                 userSelect: 'none',
-                transition: 'all 0.18s',
-                boxShadow: carrying ? '0 2px 8px rgba(0,0,0,0.3)' : 'none',
+                transition: 'box-shadow 0.18s',
             }}
         >
             {text}
