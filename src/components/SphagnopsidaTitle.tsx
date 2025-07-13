@@ -1,109 +1,128 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import MovableTitle from './MovableTitle';
-import { TITLE_INITIAL_POSITIONS, AVATAR_SIZE } from '@/app/config/config';
+import { AVATAR_SIZE } from '@/app/config/config';
 import type { Avatar } from '@/types/Avatar';
+import type { TitleState } from '@/app/hooks/useTitlesMultiplayer';
 
 interface SphagnopsidaTitleProps {
-    currentZoneIndex: number;
+    titles: TitleState[];
     avatar: Avatar;
-    onTitleMove?: (titleId: string, newZoneIndex: number) => void;
+    emitTitleMove: (title: TitleState) => void;
+    currentZoneIndex: number;
 }
 
-// Check if avatar is near the title (within pickup range)
 function isAvatarNearTitle(
     avatar: { x: number; y: number },
     title: { x: number; y: number },
-    pickupRange: number = 100
+    pickupRange = 100
 ) {
     const avatarCenterX = avatar.x + AVATAR_SIZE / 2;
     const avatarCenterY = avatar.y + AVATAR_SIZE / 2;
-    const titleCenterX = title.x + 120; // half of title width (240/2)
-    const titleCenterY = title.y + 27;  // half of title height (54/2)
-
+    const titleCenterX = title.x + 120;
+    const titleCenterY = title.y + 27;
     const distance = Math.sqrt(
-        Math.pow(avatarCenterX - titleCenterX, 2) + 
+        Math.pow(avatarCenterX - titleCenterX, 2) +
         Math.pow(avatarCenterY - titleCenterY, 2)
     );
-
     return distance <= pickupRange;
 }
 
-export default function SphagnopsidaTitle({ 
-    currentZoneIndex, 
-    avatar, 
-    onTitleMove 
+export default function SphagnopsidaTitle({
+    titles,
+    avatar,
+    emitTitleMove,
+    currentZoneIndex,
 }: SphagnopsidaTitleProps) {
-    const originalZoneIndex = 1; // Sphagnopsida is always zoneIndex 1
-    const initialPos = TITLE_INITIAL_POSITIONS[originalZoneIndex];
+    // Wait until titles is non-empty and contains the right title
+    const title = titles.find(t => t.id === 'sphagnopsida');
     
-    const [titleState, setTitleState] = useState({
-        x: initialPos.x,
-        y: initialPos.y,
-        currentZoneIndex: originalZoneIndex,
-        carriedBy: null as string | null,
-    });
+    // Keep track of the last emitted position to avoid unnecessary emissions
+    const lastEmittedPosition = useRef<{x: number, y: number} | null>(null);
+    // Use ref to capture current avatar position without causing effect to restart
+    const avatarRef = useRef(avatar);
+    avatarRef.current = avatar;
 
-    // Handle E key press for pickup/drop
+    // Listen for E to pick up/drop (only for this user)
     useEffect(() => {
         function handleKeyDown(e: KeyboardEvent) {
-            if (e.key.toLowerCase() === 'e') {
-                // Only handle if avatar is in the same zone as the title
-                if (avatar.zoneIndex === titleState.currentZoneIndex) {
-                    if (titleState.carriedBy) {
-                        // Drop the title
-                        setTitleState(prev => ({
-                            ...prev,
-                            carriedBy: null,
-                        }));
-                    } else if (isAvatarNearTitle(avatar, titleState)) {
-                        // Pick up the title
-                        setTitleState(prev => ({
-                            ...prev,
-                            carriedBy: avatar.label, // Use avatar label as ID
-                        }));
-                    }
-                }
+            const currentTitle = titlesRef.current.find(t => t.id === 'sphagnopsida');
+            if (!currentTitle) return; // Guard against undefined title
+            if (e.key.toLowerCase() !== 'e') return;
+            if (avatarRef.current.zoneIndex !== currentTitle.currentZoneIndex) return;
+            if (!avatarRef.current.id) return; // Guard against undefined avatar.id (before socket connection)
+
+            // Drop if carried by this user
+            if (currentTitle.carriedBy === avatarRef.current.id) {
+                const newTitle = { ...currentTitle, carriedBy: null };
+                emitTitleMove(newTitle);
+                lastEmittedPosition.current = { x: newTitle.x, y: newTitle.y };
+            }
+            // Pick up if not carried and close enough
+            else if (!currentTitle.carriedBy && isAvatarNearTitle(avatarRef.current, currentTitle)) {
+                const newTitle = { ...currentTitle, carriedBy: avatarRef.current.id ?? null, teamColor: avatarRef.current.color };
+                emitTitleMove(newTitle);
+                lastEmittedPosition.current = { x: newTitle.x, y: newTitle.y };
             }
         }
-
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [avatar, titleState]);
+    }, [emitTitleMove]); // Only depend on emit function
 
-    // Update title position when being carried
+    // Use refs to avoid effect restarts
+    const titlesRef = useRef(titles);
+    titlesRef.current = titles;
+
+    // Periodically sync position to server when carrying (not on every movement)
     useEffect(() => {
-        if (titleState.carriedBy && avatar.zoneIndex === titleState.currentZoneIndex) {
-            setTitleState(prev => ({
-                ...prev,
-                x: avatar.x + AVATAR_SIZE / 2 - 120, // Center title on avatar
-                y: avatar.y - 60, // Position above avatar
-            }));
-        }
-    }, [avatar.x, avatar.y, titleState.carriedBy, avatar.zoneIndex, titleState.currentZoneIndex]);
+        const syncInterval = setInterval(() => {
+            const currentTitle = titlesRef.current.find(t => t.id === 'sphagnopsida');
+            if (!currentTitle || currentTitle.carriedBy !== avatarRef.current.id || avatarRef.current.zoneIndex !== currentTitle.currentZoneIndex) {
+                return; // Don't sync if not carrying or in wrong zone
+            }
 
-    // Handle zone changes when title is being carried
-    useEffect(() => {
-        if (titleState.carriedBy && avatar.zoneIndex !== titleState.currentZoneIndex) {
-            setTitleState(prev => ({
-                ...prev,
-                currentZoneIndex: avatar.zoneIndex,
-            }));
-            onTitleMove?.('sphagnopsida', avatar.zoneIndex);
-        }
-    }, [avatar.zoneIndex, titleState.carriedBy, titleState.currentZoneIndex, onTitleMove]);
+            const newX = avatarRef.current.x + AVATAR_SIZE / 2 - 120;
+            const newY = avatarRef.current.y - 60;
+            
+            console.log('Syncing Sphagnopsida position:', newX, newY);
+            
+            // Only emit if position has changed significantly to reduce server traffic
+            if (!lastEmittedPosition.current || 
+                Math.abs(newX - lastEmittedPosition.current.x) > 20 || 
+                Math.abs(newY - lastEmittedPosition.current.y) > 20) {
+                
+                console.log('Position changed significantly, emitting to server');
+                const updatedTitle = {
+                    ...currentTitle,
+                    x: newX,
+                    y: newY,
+                    teamColor: avatarRef.current.color,
+                };
+                emitTitleMove(updatedTitle);
+                lastEmittedPosition.current = { x: newX, y: newY };
+            }
+        }, 100); // Sync every 100ms to reduce server traffic
 
-    // Only render if the title is in the current zone
-    if (titleState.currentZoneIndex !== currentZoneIndex) {
-        return null;
-    }
+        return () => clearInterval(syncInterval);
+    }, []); // Only depend on emit function - most stable
+
+    // Only render if title is defined and in this zone - moved after hooks
+    if (!title || title.currentZoneIndex !== currentZoneIndex) return null;
+
+    // Calculate display position (local for smooth movement when carrying)
+    const displayX = title.carriedBy === avatarRef.current.id 
+        ? avatarRef.current.x + AVATAR_SIZE / 2 - 120  // Always use local position when I'm carrying
+        : title.x;                          // Use server position when not carrying or someone else is carrying
+    const displayY = title.carriedBy === avatarRef.current.id 
+        ? avatarRef.current.y - 60                     // Always use local position when I'm carrying
+        : title.y;                          // Use server position when not carrying or someone else is carrying
 
     return (
         <MovableTitle
-            x={titleState.x}
-            y={titleState.y}
+            x={displayX}
+            y={displayY}
             text="Sphagnopsida"
-            teamColor={titleState.carriedBy ? avatar.color : undefined}
-            carrying={!!titleState.carriedBy}
+            teamColor={title.carriedBy ? (title.carriedBy === avatarRef.current.id ? avatarRef.current.color : title.teamColor || undefined) : undefined}
+            carrying={!!title.carriedBy}
         />
     );
-} 
+}

@@ -6,6 +6,7 @@ import AvatarOverlay from '@/app/avatars/AvatarOverlay';
 import ZoneTriggerBox from '@/components/ZoneTriggerBox';
 import { useAvatarMovement } from '@/app/hooks/useAvatarMovement';
 import { useAvatarsMultiplayer } from '@/app/hooks/useAvatarsMultiplayer';
+import { useTitlesMultiplayer } from '@/app/hooks/useTitlesMultiplayer';
 import {
     IFRAME_WIDTH,
     IFRAME_HEIGHT,
@@ -54,6 +55,7 @@ function isAvatarInZone(
 export default function GameArea({ avatarSelection }: { avatarSelection: AvatarSelection }) {
     const initialStart = TEAM_STARTS[avatarSelection.team];
     const [zoneIndex, setZoneIndex] = useState(initialStart.zoneIndex);
+    const { titles, emitTitleMove } = useTitlesMultiplayer(SOCKET_SERVER_URL);
 
     // Track title movements (for future server sync)
     const handleTitleMove = (titleId: string, newZoneIndex: number) => {
@@ -87,6 +89,7 @@ export default function GameArea({ avatarSelection }: { avatarSelection: AvatarS
                     ...a,
                     x: navSpawn.x,
                     y: navSpawn.y,
+                    zoneIndex: foundZone.goTo,
                 }));
                 setScrollY(navSpawn.windowScrollY ?? 0);
                 window.scrollTo({ top: navSpawn.windowScrollY ?? 0, behavior: 'smooth' });
@@ -95,6 +98,7 @@ export default function GameArea({ avatarSelection }: { avatarSelection: AvatarS
                     ...a,
                     x: 100,
                     y: 100,
+                    zoneIndex: foundZone.goTo,
                 }));
                 setScrollY(0);
                 window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -165,12 +169,14 @@ export default function GameArea({ avatarSelection }: { avatarSelection: AvatarS
             <SphagnopsidaTitle
                 currentZoneIndex={zoneIndex}
                 avatar={avatar}
-                onTitleMove={handleTitleMove}
+                emitTitleMove={emitTitleMove}
+                titles={titles}
             />
             <TakakiaTitle
                 currentZoneIndex={zoneIndex}
                 avatar={avatar}
-                onTitleMove={handleTitleMove}
+                emitTitleMove={emitTitleMove}
+                titles={titles}
             />
 
             <AvatarOverlay

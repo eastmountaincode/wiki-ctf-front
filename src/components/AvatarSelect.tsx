@@ -24,7 +24,10 @@ export default function AvatarSelect({ onSelect }: { onSelect: (choice: AvatarSe
             setError('Please enter a single letter or number.');
             return;
         }
-        onSelect({ label: letter, team });
+        onSelect({ 
+            label: letter, 
+            team 
+        });
     }
 
     return (

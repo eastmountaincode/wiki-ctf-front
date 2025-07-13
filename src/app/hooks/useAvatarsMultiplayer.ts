@@ -14,6 +14,9 @@ export function useAvatarsMultiplayer(
     useEffect(() => {
         const socket = io(serverUrl);
         socket.on('connect', () => {
+            // Update avatar with socket.id so the client knows its own multiplayer ID
+            setAvatar(prevAvatar => ({ ...prevAvatar, id: socket.id }));
+            console.log('Connected with socket.id:', socket.id);
             socket.emit('join', { ...avatar, zoneIndex });
         });
         socket.on('avatars', (avatars: Avatar[]) => {

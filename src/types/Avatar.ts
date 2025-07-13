@@ -8,5 +8,5 @@ export interface Avatar {
     label: string;
     zoneIndex: number;
     team: Team;
-    id?: string; // id is assigned by the server
+    id?: string; // id is assigned by the server (socket.id)
 }
