@@ -16,10 +16,13 @@ import {
     TEAM_COLORS,
     TEAM_STARTS,
     NAV_SPAWNS, // add this import for per-transition spawns/scroll
+    TITLE_COVERS,
 } from '@/app/config/config';
 import type { Avatar } from '@/types/Avatar';
 import type { AvatarSelection } from '@/components/AvatarSelect';
 import React from 'react';
+import SphagnopsidaTitle from './SphagnopsidaTitle';
+import TakakiaTitle from './TakakiaTitle';
 
 const SOCKET_SERVER_URL = 'http://142.93.200.109:4000';
 
@@ -46,9 +49,17 @@ function isAvatarInZone(
     );
 }
 
+
+
 export default function GameArea({ avatarSelection }: { avatarSelection: AvatarSelection }) {
     const initialStart = TEAM_STARTS[avatarSelection.team];
     const [zoneIndex, setZoneIndex] = useState(initialStart.zoneIndex);
+
+    // Track title movements (for future server sync)
+    const handleTitleMove = (titleId: string, newZoneIndex: number) => {
+        console.log(`Title ${titleId} moved to zone ${newZoneIndex}`);
+        // TODO: Sync with server
+    };
 
     // Track scroll for browser window
     const [scrollY, setScrollY] = useState<number>(initialStart.windowScrollY ?? 0);
@@ -133,6 +144,35 @@ export default function GameArea({ avatarSelection }: { avatarSelection: AvatarS
                 width={IFRAME_WIDTH}
                 height={IFRAME_HEIGHT}
             />
+            {/* ---- TITLE COVER RECTANGLE (WHITE) ---- */}
+            {TITLE_COVERS[zoneIndex] && (
+                <div
+                    style={{
+                        position: 'absolute',
+                        left: TITLE_COVERS[zoneIndex].left,
+                        top: TITLE_COVERS[zoneIndex].top,
+                        width: TITLE_COVERS[zoneIndex].width,
+                        height: TITLE_COVERS[zoneIndex].height,
+                        background: '#fff',
+                        zIndex: 25,
+                        pointerEvents: 'none',
+
+                    }}
+                />
+            )}
+
+            {/* Render separate title components */}
+            <SphagnopsidaTitle
+                currentZoneIndex={zoneIndex}
+                avatar={avatar}
+                onTitleMove={handleTitleMove}
+            />
+            <TakakiaTitle
+                currentZoneIndex={zoneIndex}
+                avatar={avatar}
+                onTitleMove={handleTitleMove}
+            />
+
             <AvatarOverlay
                 avatars={avatarsToShow}
                 width={IFRAME_WIDTH}

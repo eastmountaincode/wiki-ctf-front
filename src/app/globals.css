@@ -24,3 +24,11 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+@font-face {
+    font-family: 'Linux Libertine';
+    src: url('/fonts/LinLibertine_aRL.ttf') format('truetype');
+    font-weight: 400;
+    font-style: normal; /* This font file IS italic, but we call it 'normal' so it's always used */
+}
+

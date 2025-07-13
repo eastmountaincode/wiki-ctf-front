@@ -24,7 +24,7 @@ export default function AvatarOverlay({ avatars, width, height }: AvatarOverlayP
                 width,
                 height,
                 pointerEvents: 'none',
-                zIndex: 1,
+                zIndex: 30,
             }}
         >
             {avatars.map((avatar, idx) => (

@@ -2,7 +2,7 @@
 
 export const IFRAME_WIDTH = 1200;
 export const IFRAME_HEIGHT = 7200;
-export const AVATAR_SIZE = 64;
+export const AVATAR_SIZE = 32;
 export const MOVE_SPEED = 7;
 
 export const PAGES = [
@@ -91,4 +91,30 @@ export const NAV_SPAWNS: Record<string, SpawnSettings> = {
     '1->0': { zoneIndex: 0, x: 430, y: 6160, windowScrollY: 5800 }, // Sphagnopsida to Moss
     '0->1': { zoneIndex: 1, x: 448, y: 207, windowScrollY: 0 }, // Moss to Sphagnopsida
     '0->2': { zoneIndex: 2, x: 507, y: 207, windowScrollY: 0 }, // Moss to Takakia
+};
+
+export interface TitleCover {
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+}
+
+// Keyed by zoneIndex/pageIndex (number)
+export const TITLE_COVERS: Record<number, TitleCover> = {
+    1: { left: 260, top: 68, width: 200, height: 60 }, // Sphagnopsida (zoneIndex 1)
+    2: { left: 250, top: 68, width: 200, height: 60 }, // Takakia (zoneIndex 2)
+};
+
+
+export interface TitleInitialPosition {
+    x: number;
+    y: number;
+    width?: number;
+    height?: number;
+}
+
+export const TITLE_INITIAL_POSITIONS: Record<number, TitleInitialPosition> = {
+    1: { x: 254, y: 84 }, // Sphagnopsida (zoneIndex 1)
+    2: { x: 205, y: 80 }, // Takakia (zoneIndex 2)
 };
