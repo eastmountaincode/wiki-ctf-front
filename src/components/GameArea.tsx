@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import WikiFrame from '@/components/WikiFrame';
 import AvatarOverlay from '@/app/avatars/AvatarOverlay';
 import ZoneTriggerBox from '@/components/ZoneTriggerBox';

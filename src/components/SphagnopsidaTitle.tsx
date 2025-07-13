@@ -103,6 +103,7 @@ export default function SphagnopsidaTitle({
         }, 100); // Sync every 100ms to reduce server traffic
 
         return () => clearInterval(syncInterval);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []); // Only depend on emit function - most stable
 
     // Only render if title is defined and in this zone - moved after hooks

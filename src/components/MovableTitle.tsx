@@ -16,9 +16,7 @@ export default function MovableTitle({
     y,
     text,
     width = 240,
-    height = 54,
-    teamColor,
-    carrying,
+    height = 54
 }: MovableTitleProps) {
     return (
         <div

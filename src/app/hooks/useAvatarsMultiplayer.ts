@@ -24,6 +24,7 @@ export function useAvatarsMultiplayer(
         });
         socketRef.current = socket;
         return () => { socket.disconnect(); };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     useEffect(() => {
