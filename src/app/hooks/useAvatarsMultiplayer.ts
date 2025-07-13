@@ -24,7 +24,7 @@ export function useAvatarsMultiplayer(
         });
         socketRef.current = socket;
         return () => { socket.disconnect(); };
-    }, []);
+    }, [avatar, zoneIndex, setAvatar, serverUrl]);
 
     useEffect(() => {
         if (socketRef.current && socketRef.current.connected) {

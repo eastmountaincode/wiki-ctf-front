@@ -103,7 +103,7 @@ export default function SphagnopsidaTitle({
         }, 100); // Sync every 100ms to reduce server traffic
 
         return () => clearInterval(syncInterval);
-    }, []); // Only depend on emit function - most stable
+    }, [emitTitleMove]); // Only depend on emit function - most stable
 
     // Only render if title is defined and in this zone - moved after hooks
     if (!title || title.currentZoneIndex !== currentZoneIndex) return null;

@@ -1,9 +1,6 @@
-import { PAGES } from '@/app/config/config';
 import type { NavigationZone } from '@/app/config/config';
 
 export default function ZoneTriggerBox({ z }: { z: NavigationZone }) {
-    // Try to show a friendly label (e.g. "To Sphagnopsida"), fallback if missing
-    const targetName = z.label || (typeof z.goTo === 'number' ? `To ${PAGES[z.goTo]?.name}` : 'To ...');
     return (
         <div
             style={{
