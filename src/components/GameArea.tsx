@@ -91,12 +91,6 @@ export default function GameArea({ avatarSelection }: { avatarSelection: AvatarS
     const [zoneIndex, setZoneIndex] = useState(initialStart.zoneIndex);
     const { titles, emitTitleMove } = useTitlesMultiplayer(SOCKET_SERVER_URL);
 
-    // Track title movements (for future server sync)
-    const handleTitleMove = (titleId: string, newZoneIndex: number) => {
-        console.log(`Title ${titleId} moved to zone ${newZoneIndex}`);
-        // TODO: Sync with server
-    };
-
     // Track scroll for browser window
     const [scrollY, setScrollY] = useState<number>(initialStart.windowScrollY ?? 0);
 
