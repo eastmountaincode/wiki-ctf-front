@@ -18,6 +18,7 @@ import {
     TEAM_STARTS,
     NAV_SPAWNS, // add this import for per-transition spawns/scroll
     TITLE_COVERS,
+    TITLE_INITIAL_POSITIONS,
 } from '@/app/config/config';
 import type { Avatar } from '@/types/Avatar';
 import type { AvatarSelection } from '@/components/AvatarSelect';
@@ -50,6 +51,39 @@ function isAvatarInZone(
     );
 }
 
+// Check if two avatars are colliding (touching) - with buffer for more lenient tagging
+function areAvatarsColliding(avatar1: Avatar, avatar2: Avatar, buffer: number = 15): boolean {
+    const avatar1Left = avatar1.x - buffer;
+    const avatar1Right = avatar1.x + AVATAR_SIZE + buffer;
+    const avatar1Top = avatar1.y - buffer;
+    const avatar1Bottom = avatar1.y + AVATAR_SIZE + buffer;
+
+    const avatar2Left = avatar2.x - buffer;
+    const avatar2Right = avatar2.x + AVATAR_SIZE + buffer;
+    const avatar2Top = avatar2.y - buffer;
+    const avatar2Bottom = avatar2.y + AVATAR_SIZE + buffer;
+
+    return (
+        avatar1Left < avatar2Right &&
+        avatar1Right > avatar2Left &&
+        avatar1Top < avatar2Bottom &&
+        avatar1Bottom > avatar2Top
+    );
+}
+
+// Get the opponent team's title name
+function getOpponentTitleName(team: string): string {
+    return team === 'Sphagnopsida' ? 'takakia' : 'sphagnopsida';
+}
+
+// Get the initial position for a title
+function getTitleInitialPosition(titleName: string): { x: number; y: number; zoneIndex: number } {
+    if (titleName === 'sphagnopsida') {
+        return { x: TITLE_INITIAL_POSITIONS[1].x, y: TITLE_INITIAL_POSITIONS[1].y, zoneIndex: 1 };
+    } else {
+        return { x: TITLE_INITIAL_POSITIONS[2].x, y: TITLE_INITIAL_POSITIONS[2].y, zoneIndex: 2 };
+    }
+}
 
 
 export default function GameArea({ avatarSelection }: { avatarSelection: AvatarSelection }) {
@@ -80,6 +114,20 @@ export default function GameArea({ avatarSelection }: { avatarSelection: AvatarS
         if (foundZone) {
             const navKey = `${zoneIndex}->${foundZone.goTo}`;
             const navSpawn = NAV_SPAWNS?.[navKey];
+
+            // Check if avatar is carrying any titles and update their zone
+            const carriedTitles = titles.filter(title => title.carriedBy === avatar.id);
+            carriedTitles.forEach(title => {
+                const updatedTitle = {
+                    ...title,
+                    currentZoneIndex: foundZone.goTo,
+                    // Update position to follow avatar to new zone
+                    x: (navSpawn?.x || 100) + AVATAR_SIZE / 2 - 120,
+                    y: (navSpawn?.y || 100) - 60,
+                };
+                console.log(`Moving title ${title.id} to zone ${foundZone.goTo}`);
+                emitTitleMove(updatedTitle);
+            });
 
             setZoneIndex(foundZone.goTo);
 
@@ -132,6 +180,49 @@ export default function GameArea({ avatarSelection }: { avatarSelection: AvatarS
     React.useEffect(() => {
         window.scrollTo({ top: scrollY, behavior: 'smooth' });
     }, [scrollY, zoneIndex]);
+
+    // Check for tagging in the neutral zone (zone 0)
+    React.useEffect(() => {
+        if (zoneIndex !== 0) return; // Only check tagging in neutral zone
+
+        const checkTagging = () => {
+            const opponentTitleName = getOpponentTitleName(avatar.team);
+            const opponentTitle = titles.find(t => t.id === opponentTitleName);
+            
+            // Only check if I'm carrying the opponent's title
+            if (!opponentTitle || opponentTitle.carriedBy !== avatar.id) return;
+
+            // Check collision with all other avatars from opposing team
+            const opponentAvatars = allAvatars.filter(a => 
+                a.id !== avatar.id && // Not myself
+                a.team !== avatar.team && // From opposing team
+                a.zoneIndex === 0 // In the neutral zone
+            );
+
+            for (const opponent of opponentAvatars) {
+                if (areAvatarsColliding(avatar, opponent)) {
+                    console.log(`Tagged by ${opponent.team} player! Resetting ${opponentTitleName} title`);
+                    
+                    // Reset title to initial position
+                    const initialPos = getTitleInitialPosition(opponentTitleName);
+                    const resetTitle = {
+                        ...opponentTitle,
+                        x: initialPos.x,
+                        y: initialPos.y,
+                        currentZoneIndex: initialPos.zoneIndex,
+                        carriedBy: null,
+                        teamColor: null,
+                    };
+                    
+                    emitTitleMove(resetTitle);
+                    break; // Only need to be tagged once
+                }
+            }
+        };
+
+        const tagInterval = setInterval(checkTagging, 50); // Check every 50ms for responsive tagging
+        return () => clearInterval(tagInterval);
+    }, [zoneIndex, avatar, allAvatars, titles, emitTitleMove]);
 
     return (
         <div
