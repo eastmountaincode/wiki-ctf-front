@@ -96,7 +96,7 @@ export default function TakakiaTitle({
                 emitTitleMove(updatedTitle);
                 lastEmittedPosition.current = { x: newX, y: newY };
             }
-        }, 200); // Sync every 200ms to reduce server traffic
+        }, 100); // Sync every 100ms to reduce server traffic
 
         return () => clearInterval(syncInterval);
     }, [emitTitleMove]); // Only depend on emit function - most stable
